@@ -31,6 +31,9 @@ class UploadBehavior extends ModelBehavior {
     );
     
     foreach ($settings as $field => $array) {
+      if(!is_array($array)){
+        $array = array();
+      }
       self::$__settings[$model->name][$field] = array_merge($defaults, $array);
     }
   }
