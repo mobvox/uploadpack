@@ -180,8 +180,8 @@ class UploadBehavior extends ModelBehavior {
     if (is_dir($dir) && is_writable($dir)) {
       return true;
     }
-
-    if (mkdir($dir)) {
+    // debug($dir);die;
+    if (mkdir($dir, 0777, true)) {
       return true;
     }
     return false;
