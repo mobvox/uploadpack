@@ -48,11 +48,13 @@ class UploadBehavior extends ModelBehavior {
 	public function beforeSave($model) {
 		$this->_reset();
 		foreach (self::$__settings[$model->name] as $field => $settings) {
-			if (!empty($model->data[$model->name][$field]) && is_array($model->data[$model->name][$field]) && file_exists($model->data[$model->name][$field]['tmp_name'])) {
+			if (!empty($model->data[$model->name][$field]) && is_array($model->data[$model->name][$field]) && $model->data[$model->name][$field]['error'] != UPLOAD_ERR_NO_FILE) {
 				if (!empty($model->id)) {
 					$this->_prepareToDeleteFiles($model, $field, true);
 				}
 				$this->_prepareToWriteFiles($model, $field);
+			}else{
+				unset($model->data[$model->name][$field]);
 			}
 		}
 		return true;
