@@ -1,6 +1,5 @@
 <?php 
 App::uses('Upload', 'UploadPack.Model/Behavior');
-App::uses('Folder', 'Utility');
 
 class TestUpload extends CakeTestModel {
 	public $useTable = 'uploads';
@@ -53,7 +52,7 @@ class UploadBehaviorTest extends CakeTestCase{
 		$expected = array(
 			'TestUpload' => array(
 				'file' => array(
-					'path' => ':webroot/upload/:model/:id/:style-:basename.:extension',
+					'path' => ':webroot/upload/:model/:id/:style/:basename.:extension',
 					'styles' => array(),
 					'resizeToMaxWidth' => false,
 					'quality' => (int) 95,
@@ -101,7 +100,52 @@ class UploadBehaviorTest extends CakeTestCase{
 				)
 			)
 		);
+
 		$this->assertEqual($this->TestUpload->Behaviors->Upload->settings, $expected);
+	}
+
+	public function testInterpolate() {
+		$result = $this->TestUpload->Behaviors->Upload->interpolate($this->TestUpload, 'file', 'file.zip');
+		$expected = array(
+			'path' => WWW_ROOT . 'upload' . DS . 'test_uploads' . DS . 'file.zip',
+			'styles' => array(),
+			'resizeToMaxWidth' => false,
+			'quality' => (int) 95,
+			'overwrite' => false,
+			'fields' => array(
+				'dir' => 'dir',
+				'extension' => 'extension',
+				'size' => 'size',
+				'mime_type' => 'mime_type'
+			)
+		);
+
+		$this->assertEqual($result, $expected);
+
+		$settings = array(
+			'file' => array(
+				'path' => ':webroot/files/:month/:year/:style/:basename.:extension',
+			)
+		);
+
+		$this->setupBehavior($settings);
+		$result = $this->TestUpload->Behaviors->Upload->interpolate($this->TestUpload, 'file', 'test.jpg', 'small');
+
+		$expected = array(
+			'path' => WWW_ROOT . 'files' . DS . date('m') . DS . date('Y') . DS . 'small' . DS . 'test.jpg',
+			'styles' => array(),
+			'resizeToMaxWidth' => false,
+			'quality' => (int) 95,
+			'overwrite' => false,
+			'fields' => array(
+				'dir' => 'dir',
+				'extension' => 'extension',
+				'size' => 'size',
+				'mime_type' => 'mime_type'
+			)
+		);
+
+		$this->assertEqual($result, $expected);
 	}
 
 }

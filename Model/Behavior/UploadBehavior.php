@@ -13,11 +13,9 @@
  * @link http://github.com/mobvox/uploadpack
  */
 class UploadBehavior extends ModelBehavior {
-	
-	// private static $__settings = array();
 
 	private $__defaults = array(
-		'path' => ':webroot/upload/:model/:id/:style-:basename.:extension',
+		'path' => ':webroot/upload/:model/:id/:style/:basename.:extension',
 		'styles' => array(),
 		'resizeToMaxWidth' => false,
 		'quality' => 95,
@@ -132,7 +130,7 @@ class UploadBehavior extends ModelBehavior {
 		$filename = $this->_cleanFilename($filename);
 		$basename = $filename . '.' . $extension;
 
-		$settings = $this->_interpolate($model, $field, $basename, 'original');
+		$settings = $this->interpolate($model, $field, $basename, 'original');
 		
 		if (!$this->_isWritable($settings['path'])) {
 			throw new DirectoryException('Directory is not writable: ' . $settings['path']);
@@ -142,7 +140,7 @@ class UploadBehavior extends ModelBehavior {
 			if(file_exists($settings['path'])){
 				$filename .= '_'.uniqid();
 				$basename = $filename.'.'.$extension;
-				$settings = $this->_interpolate($model, $field, $basename, 'original');
+				$settings = $this->interpolate($model, $field, $basename, 'original');
 			}
 		}
 
@@ -171,7 +169,7 @@ class UploadBehavior extends ModelBehavior {
 						$this->_resize($toWrite['settings']['path'], $toWrite['settings']['path'], $this->maxWidthSize.'w', $toWrite['settings']['quality']);
 					}
 					foreach ($toWrite['settings']['styles'] as $style => $geometry) {
-						$newSettings = $this->_interpolate($model, $field, $toWrite['name'], $style);
+						$newSettings = $this->interpolate($model, $field, $toWrite['name'], $style);
 						if($this->_isWritable($newSettings['path'])){
 							$this->_resize($toWrite['settings']['path'], $newSettings['path'], $geometry, $toWrite['settings']['quality']);
 						}
@@ -194,7 +192,6 @@ class UploadBehavior extends ModelBehavior {
 		if (is_dir($dir) && is_writable($dir)) {
 			return true;
 		}
-		// debug($dir);die;
 		if (mkdir($dir, 0777, true)) {
 			return true;
 		}
@@ -247,7 +244,7 @@ class UploadBehavior extends ModelBehavior {
 				$styles = array_keys($settings['styles']);
 				$styles[] = null;
 				foreach ($styles as $style) {
-					$settings = $this->_interpolate($model, $field, $this->toDelete[$field], $style);
+					$settings = $this->interpolate($model, $field, $this->toDelete[$field], $style);
 					if (file_exists($settings['path'])) {
 						unlink($settings['path']);
 					}
@@ -256,24 +253,23 @@ class UploadBehavior extends ModelBehavior {
 		}
 	}
 	
-	protected function _interpolate($model, $field, $filename, $style = null) {
-		return self::interpolate($model->name, $model->id, $field, $filename, $style);
-	}
-	
-	public static function interpolate($modelName, $modelId, $field, $filename, $style = 'original', $defaults = array()) {
+	public function interpolate($model, $field, $filename, $style = null) {
 		$pathinfo = pathinfo($filename);
-		$interpolations = array_merge(array(
+		$interpolations = array(
 			'app' => preg_replace('/\/$/', '', APP),
 			'webroot' => preg_replace('/\/$/', '', WWW_ROOT),
-			'model' => Inflector::tableize($modelName),
+			'model' => Inflector::tableize($model->alias),
 			'basename' => !empty($filename) ? $pathinfo['filename'] : null,
 			'extension' => !empty($filename) ? $pathinfo['extension'] : null,
-			'id' => $modelId,
+			'id' => $model->id,
 			'style' => $style,
 			'attachment' => Inflector::pluralize($field),
+			'month' => date('m'),
+			'day' => date('d'),
+			'year' => date('Y'),
 			'hash' => md5((!empty($filename) ? $pathinfo['filename'] : "") . Configure::read('Security.salt'))
-		), $defaults);
-		$settings = $this->settings[$modelName][$field];
+		);
+		$settings = $this->settings[$model->alias][$field];
 		$keys = array('path', 'url', 'default_url');
 		foreach ($interpolations as $k => $v) {
 			foreach ($keys as $key) {
