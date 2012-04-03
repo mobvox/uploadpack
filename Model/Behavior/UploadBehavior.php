@@ -9,31 +9,32 @@
  * joe bartlett's lovingly handcrafted tweaks add several resize modes. see "more on styles" in the documentation.
  *
  * @author Michał Szajbe (michal.szajbe@gmail.com) and joe bartlett (contact@jdbartlett.com)
- * @link http://github.com/szajbus/uploadpack
+ * @author Daniel Luiz Pakuschewski (contato@danielpk.com.br)
+ * @link http://github.com/mobvox/uploadpack
  */
 class UploadBehavior extends ModelBehavior {
 	
-	private static $__settings = array();
+	// private static $__settings = array();
 
 	private $__defaults = array(
-			'path' => ':webroot/upload/:model/:id/:style-:basename.:extension',
-			'styles' => array(),
-			'resizeToMaxWidth' => false,
-			'quality' => 95,
-			'overwrite' => false,
-			'fields' => array(
-				'dir' => 'dir',
-				'extension' => 'extension',
-				'size' => 'size',
-				'mime_type' => 'mime_type' 
-			)
+		'path' => ':webroot/upload/:model/:id/:style-:basename.:extension',
+		'styles' => array(),
+		'resizeToMaxWidth' => false,
+		'quality' => 95,
+		'overwrite' => false,
+		'fields' => array(
+			'dir' => 'dir',
+			'extension' => 'extension',
+			'size' => 'size',
+			'mime_type' => 'mime_type' 
+		)
 	);
 	
-	protected $toWrite = array();
+	public $toWrite = array();
 	
-	protected $toDelete = array();
+	public $toDelete = array();
 	
-	protected $maxWidthSize = false;
+	public $maxWidthSize = false;
 	
 	public function setup($model, $settings = array()) {
 		foreach ($settings as $field => $array) {
@@ -41,13 +42,13 @@ class UploadBehavior extends ModelBehavior {
 				$field = $array;
 				$array = array();
 			}
-			self::$__settings[$model->name][$field] = array_merge($this->__defaults, $array);
+			$this->settings[$model->name][$field] = Set::merge($this->__defaults, $array);
 		}
 	}
 	
 	public function beforeSave($model) {
 		$this->_reset();
-		foreach (self::$__settings[$model->name] as $field => $settings) {
+		foreach ($this->settings[$model->name] as $field => $settings) {
 			if (!empty($model->data[$model->name][$field]) && is_array($model->data[$model->name][$field]) && $model->data[$model->name][$field]['error'] != UPLOAD_ERR_NO_FILE) {
 				if (!empty($model->id)) {
 					$this->_prepareToDeleteFiles($model, $field, true);
@@ -78,7 +79,7 @@ class UploadBehavior extends ModelBehavior {
 	}
 
 	public function beforeValidate($model) {
-		foreach (self::$__settings[$model->name] as $field => $settings) {
+		foreach ($this->settings[$model->name] as $field => $settings) {
 		if (isset($model->data[$model->name][$field])) {
 			$data = $model->data[$model->name][$field];
 
@@ -212,7 +213,7 @@ class UploadBehavior extends ModelBehavior {
 	protected function _prepareToDeleteFiles($model, $field = null, $forceRead = false) {
 		$needToRead = true;
 		if ($field === null) {
-			$fields = array_keys(self::$__settings[$model->name]);
+			$fields = array_keys($this->settings[$model->name]);
 		} else {
 			$fields = array($field);
 		}
@@ -241,7 +242,7 @@ class UploadBehavior extends ModelBehavior {
 	}
 	
 	protected function _deleteFiles($model) {
-		foreach (self::$__settings[$model->name] as $field => $settings) {
+		foreach ($this->settings[$model->name] as $field => $settings) {
 			if (!empty($this->toDelete[$field])) {
 				$styles = array_keys($settings['styles']);
 				$styles[] = null;
@@ -272,7 +273,7 @@ class UploadBehavior extends ModelBehavior {
 			'attachment' => Inflector::pluralize($field),
 			'hash' => md5((!empty($filename) ? $pathinfo['filename'] : "") . Configure::read('Security.salt'))
 		), $defaults);
-		$settings = self::$__settings[$modelName][$field];
+		$settings = $this->settings[$modelName][$field];
 		$keys = array('path', 'url', 'default_url');
 		foreach ($interpolations as $k => $v) {
 			foreach ($keys as $key) {
@@ -452,7 +453,7 @@ class UploadBehavior extends ModelBehavior {
 	public function maxWidth($model, $value, $maxWidth) {
 		$keys = array_keys($value);
 		$field = $keys[0];
-		$settings = self::$__settings[$model->name][$field];
+		$settings = $this->settings[$model->name][$field];
 		if($settings['resizeToMaxWidth'] && !$this->_validateDimension($value, 'max', 'x', $maxWidth)) {
 			$this->maxWidthSize = $maxWidth;
 			return true;
